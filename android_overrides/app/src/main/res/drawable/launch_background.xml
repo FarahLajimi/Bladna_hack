@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- BLADNA native launch screen: midnight field with the app icon centred.
+     The animated logo then plays in Flutter (lib/features/splash). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/bladna_midnight" />
+    <item>
+        <bitmap android:gravity="center" android:src="@mipmap/ic_launcher" />
+    </item>
+</layer-list>
