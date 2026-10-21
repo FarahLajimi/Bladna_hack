@@ -1,0 +1,60 @@
+name: Build APK
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Move project to top level if it is inside a sub-folder
+        run: |
+          if [ ! -f pubspec.yaml ]; then
+            dir=$(dirname "$(find . -maxdepth 3 -name pubspec.yaml -not -path './.git/*' | head -n 1)")
+            echo "Project found in: $dir"
+            shopt -s dotglob
+            mv "$dir"/* .
+          fi
+          ls -la
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Generate the Android platform folder
+        run: |
+          flutter --version
+          if [ ! -d android ]; then
+            flutter create --platforms=android --project-name bladna --org tn.greenhackathon2026 .
+          fi
+          manifest=android/app/src/main/AndroidManifest.xml
+          sed -i 's/android:label="bladna"/android:label="BLADNA"/' "$manifest"
+          grep -q 'android.permission.INTERNET' "$manifest" || \
+            sed -i '0,/<application/s##<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' "$manifest"
+          if [ -d android_overrides ]; then cp -r android_overrides/* android/; fi
+
+      - name: Get packages
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run tests
+        run: flutter test
+        continue-on-error: true
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bladna-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
